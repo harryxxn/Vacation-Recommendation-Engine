@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AtlasMind Travel AI</title>
+    <link rel="stylesheet" href="/styles.css?v=rag-mlops" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="app-title">
+        <div class="hero-copy">
+          <p class="eyebrow">AI travel planning prototype</p>
+          <h1 id="app-title">AtlasMind</h1>
+          <p>
+            Tune your preferences and get explainable destination recommendations built for
+            fast product demos, GitHub projects, and responsible iteration.
+          </p>
+        </div>
+        <img
+          class="hero-image"
+          src="/assets/travel-board.png"
+          alt="Illustrated travel planning board with a map, route line, and destination cards"
+        />
+      </section>
+
+      <section class="workspace" aria-label="Travel recommendation controls and results">
+        <form id="preference-form" class="panel controls">
+          <div class="panel-heading">
+            <p class="eyebrow">Trip profile</p>
+            <h2>Recommendation inputs</h2>
+          </div>
+
+          <label>
+            Interests
+            <select id="interests" multiple size="7">
+              <option value="food" selected>Food</option>
+              <option value="culture" selected>Culture</option>
+              <option value="nature" selected>Nature</option>
+              <option value="adventure">Adventure</option>
+              <option value="beach">Beach</option>
+              <option value="history">History</option>
+              <option value="wellness">Wellness</option>
+              <option value="nightlife">Nightlife</option>
+              <option value="quiet">Quiet</option>
+              <option value="art">Art</option>
+            </select>
+          </label>
+
+          <div class="field-grid">
+            <label>
+              Budget per day
+              <input id="budget" type="number" min="50" max="500" value="180" />
+            </label>
+            <label>
+              Days
+              <input id="days" type="number" min="2" max="21" value="6" />
+            </label>
+            <label>
+              Month
+              <select id="month">
+                <option>Jan</option>
+                <option>Feb</option>
+                <option>Mar</option>
+                <option>Apr</option>
+                <option>May</option>
+                <option>Jun</option>
+                <option>Jul</option>
+                <option>Aug</option>
+                <option selected>Sep</option>
+                <option>Oct</option>
+                <option>Nov</option>
+                <option>Dec</option>
+              </select>
+            </label>
+            <label>
+              Traveler
+              <select id="travelerType">
+                <option selected>couple</option>
+                <option>solo</option>
+                <option>family</option>
+                <option>friends</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset>
+            <legend>Pace</legend>
+            <div class="segmented">
+              <label><input type="radio" name="pace" value="relaxed" />Relaxed</label>
+              <label><input type="radio" name="pace" value="balanced" checked />Balanced</label>
+              <label><input type="radio" name="pace" value="active" />Active</label>
+            </div>
+          </fieldset>
+
+          <label>
+            Climate
+            <select id="climate">
+              <option value="any" selected>Any climate</option>
+              <option value="warm">Warm</option>
+              <option value="mild">Mild</option>
+              <option value="cool">Cool</option>
+              <option value="cold">Cold</option>
+              <option value="tropical">Tropical</option>
+            </select>
+          </label>
+
+          <label class="slider-label">
+            Safety priority
+            <span id="safety-output">60</span>
+            <input id="safetyPriority" type="range" min="0" max="100" value="60" />
+          </label>
+
+          <label class="slider-label">
+            Popularity target
+            <span id="popularity-output">50</span>
+            <input id="popularityPreference" type="range" min="0" max="100" value="50" />
+          </label>
+
+          <button type="submit">Generate recommendations</button>
+        </form>
+
+        <section class="results" aria-live="polite">
+          <div class="panel model-note">
+            <div>
+              <p class="eyebrow">AI architecture</p>
+              <h2>RAG + MLOps enabled</h2>
+            </div>
+            <p>
+              Recommendations now combine a ranking model baseline, mock vector retrieval,
+              citation-grounded explanations, feedback capture, model registry metadata,
+              drift checks, and retraining simulation.
+            </p>
+          </div>
+
+          <div id="recommendations" class="recommendation-list"></div>
+        </section>
+      </section>
+
+      <section class="ops-band" aria-label="Machine learning operations dashboard">
+        <div class="ops-grid">
+          <div class="panel ops-panel">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">RAG retrieval</p>
+                <h2>Knowledge probe</h2>
+              </div>
+            </div>
+            <form id="rag-form" class="rag-form">
+              <label>
+                Search travel context
+                <input id="rag-query" value="September food culture beach safety" />
+              </label>
+              <button type="submit">Search knowledge</button>
+            </form>
+            <div id="rag-results" class="ops-list"></div>
+          </div>
+
+          <div class="panel ops-panel">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">MLOps</p>
+                <h2>Monitoring</h2>
+              </div>
+              <button id="retrain-button" class="small-button" type="button">Retrain</button>
+            </div>
+            <div id="mlops-dashboard" class="ops-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js?v=rag-mlops"></script>
+  </body>
+</html>

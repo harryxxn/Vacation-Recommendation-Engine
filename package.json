@@ -1,0 +1,18 @@
+{
+  "name": "travel-ai-recommender",
+  "version": "1.0.0",
+  "description": "Explainable AI-style travel recommendation app with a dependency-free Node backend and frontend.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "travel",
+    "recommendations",
+    "ai",
+    "machine-learning"
+  ],
+  "author": "",
+  "license": "MIT"
+}
