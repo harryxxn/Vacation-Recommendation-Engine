@@ -1,4 +1,4 @@
-# AtlasMind Travel AI
+# AtlasMind
 
 AtlasMind is a working full-stack travel recommendation prototype. It includes a
 dependency-free Node backend, a browser frontend, an explainable recommender,
