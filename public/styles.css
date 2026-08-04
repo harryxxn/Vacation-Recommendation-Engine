@@ -269,6 +269,46 @@ button:disabled {
   gap: 14px;
 }
 
+.itinerary-panel {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.itinerary-days {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.itinerary-day {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+
+.itinerary-day strong,
+.itinerary-day span {
+  display: block;
+}
+
+.itinerary-day span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.itinerary-day ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
 .card {
   display: grid;
   grid-template-columns: auto 1fr;

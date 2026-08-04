@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { destinations } = require("./destinations");
 const { DEFAULT_PREFERENCES, recommend } = require("./recommender");
+const { buildItinerary } = require("./itineraries");
 const {
   enrichRecommendationsWithRag,
   getKnowledgeStats,
@@ -136,6 +137,18 @@ async function route(request, response) {
       });
     } catch (error) {
       sendJson(response, 400, { error: "Invalid JSON request body" });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/itineraries") {
+    try {
+      const body = await readJsonBody(request);
+      sendJson(response, 201, { itinerary: buildItinerary(body) });
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, {
+        error: error.message || "Invalid itinerary request"
+      });
     }
     return;
   }

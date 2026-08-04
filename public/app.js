@@ -8,6 +8,8 @@ const ragResults = document.querySelector("#rag-results");
 const retrainButton = document.querySelector("#retrain-button");
 
 let activeModelId = "ranker-baseline-v1";
+let activePreferences = {};
+let currentItinerary = null;
 
 function selectedValues(select) {
   return [...select.selectedOptions].map((option) => option.value);
@@ -64,6 +66,7 @@ function cardTemplate(destination) {
           <p class="uncertainty">${destination.rag.uncertainty}</p>
         </details>
         <div class="feedback-actions" aria-label="Feedback actions for ${destination.name}">
+          <button type="button" data-plan-destination="${destination.id}">Plan trip</button>
           <button type="button" data-action="save" data-destination="${destination.id}" data-score="${destination.score}">Save</button>
           <button type="button" data-action="thumbs_up" data-destination="${destination.id}" data-score="${destination.score}">Useful</button>
           <button type="button" data-action="hide" data-destination="${destination.id}" data-score="${destination.score}">Hide</button>
@@ -71,6 +74,43 @@ function cardTemplate(destination) {
       </div>
     </article>
   `;
+}
+
+function itineraryTemplate(itinerary) {
+  return `
+    <section class="itinerary-panel">
+      <div class="card-header">
+        <div><p class="eyebrow">Your trip plan</p><h2>${itinerary.destination.name} in ${itinerary.days} days</h2></div>
+        <span class="meta">Estimated $${itinerary.estimatedTripSpend}</span>
+      </div>
+      <p class="uncertainty">Flexible starting point only: confirm reservations, prices, transit times, and opening hours before booking.</p>
+      <div class="itinerary-days">${itinerary.itineraryDays
+        .map(
+          (day) => `
+            <article class="itinerary-day">
+              <strong>Day ${day.day} · ${day.title}</strong>
+              <span>${day.area} · ~$${day.estimatedSpend}</span>
+              <ul>${day.activities.map((activity) => `<li><b>${activity.time}</b> ${activity.title}</li>`).join("")}</ul>
+            </article>`
+        )
+        .join("")}</div>
+      <button type="button" id="save-trip-button">Save this trip</button>
+    </section>`;
+}
+
+async function planTrip(destinationId) {
+  const response = await fetch("/api/itineraries", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...activePreferences, destinationId })
+  });
+  if (!response.ok) {
+    throw new Error("Could not create itinerary");
+  }
+  const payload = await response.json();
+  currentItinerary = payload.itinerary;
+  document.querySelector("#trip-plan").innerHTML = itineraryTemplate(currentItinerary);
+  document.querySelector("#trip-plan").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function dashboardTemplate(payload) {
@@ -116,6 +156,7 @@ async function loadRecommendations() {
       throw new Error("Recommendation request failed");
     }
     const payload = await response.json();
+    activePreferences = readPreferences();
     activeModelId = payload.model.id;
     list.innerHTML = payload.recommendations.map(cardTemplate).join("");
     dashboard.innerHTML = dashboardTemplate({ health: payload.mlops });
@@ -204,8 +245,23 @@ form.addEventListener("submit", (event) => {
 });
 
 list.addEventListener("click", (event) => {
+  if (event.target.matches("[data-plan-destination]")) {
+    planTrip(event.target.dataset.planDestination).catch(() => {
+      document.querySelector("#trip-plan").innerHTML = `<div class="error">Could not create a trip plan. Please try again.</div>`;
+    });
+    return;
+  }
   if (event.target.matches("[data-action]")) {
     submitFeedback(event.target);
+  }
+});
+
+document.querySelector("#trip-plan").addEventListener("click", (event) => {
+  if (event.target.matches("#save-trip-button") && currentItinerary) {
+    const savedTrips = JSON.parse(localStorage.getItem("atlasmind.savedTrips") || "[]");
+    localStorage.setItem("atlasmind.savedTrips", JSON.stringify([currentItinerary, ...savedTrips].slice(0, 20)));
+    event.target.textContent = "Trip saved";
+    event.target.disabled = true;
   }
 });
 
