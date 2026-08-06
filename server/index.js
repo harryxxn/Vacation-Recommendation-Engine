@@ -8,8 +8,10 @@ const { generateItinerary } = require("./itinerary");
 const {
   enrichRecommendationsWithRag,
   getKnowledgeStats,
+  initializeKnowledgeBase,
   queryKnowledgeBase
 } = require("./rag");
+const { metricsResponse, recordRequest } = require("./metrics");
 const {
   evaluateOperationalHealth,
   getActiveModel,
@@ -93,6 +95,11 @@ function serveStatic(request, response) {
 async function route(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
+  if (request.method === "GET" && url.pathname === "/metrics") {
+    await metricsResponse(response);
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/health") {
     sendJson(response, 200, {
       status: "ok",
@@ -117,7 +124,7 @@ async function route(request, response) {
       const preferences = await readJsonBody(request);
       const limit = Number(url.searchParams.get("limit")) || 5;
       const baseRecommendations = recommend(preferences, limit);
-      const recommendations = enrichRecommendationsWithRag(baseRecommendations, preferences);
+      const recommendations = await enrichRecommendationsWithRag(baseRecommendations, preferences);
       sendJson(response, 200, {
         preferences,
         recommendations,
@@ -137,7 +144,7 @@ async function route(request, response) {
         }
       });
     } catch (error) {
-      sendJson(response, 400, { error: "Invalid JSON request body" });
+      sendJson(response, error.statusCode || 503, { error: error.message || "Semantic retrieval is temporarily unavailable" });
     }
     return;
   }
@@ -148,11 +155,11 @@ async function route(request, response) {
       const limit = Number(url.searchParams.get("limit")) || 5;
       sendJson(response, 200, {
         query: body.query || "",
-        results: queryKnowledgeBase(body.query || "", limit),
+        results: await queryKnowledgeBase(body.query || "", limit),
         stats: getKnowledgeStats()
       });
     } catch (error) {
-      sendJson(response, 400, { error: "Invalid JSON request body" });
+      sendJson(response, error.statusCode || 503, { error: error.message || "Semantic retrieval is temporarily unavailable" });
     }
     return;
   }
@@ -228,15 +235,25 @@ async function route(request, response) {
 }
 
 const server = http.createServer((request, response) => {
-  route(request, response).catch((error) => {
-    console.error(error);
-    sendJson(response, 500, { error: "Unexpected server error" });
-  });
+  const startedAt = process.hrtime.bigint();
+  route(request, response)
+    .catch((error) => {
+      console.error(error);
+      sendJson(response, 500, { error: "Unexpected server error" });
+    })
+    .finally(() => recordRequest(request.method, new URL(request.url, `http://${request.headers.host}`).pathname, response.statusCode || 500, Number(process.hrtime.bigint() - startedAt) / 1e9));
 });
 
 if (require.main === module) {
   initializeDatabase()
-    .then(() => server.listen(PORT, () => console.log(`Travel AI Recommender running at http://localhost:${PORT}`)))
+    .then(async () => {
+      try {
+        await initializeKnowledgeBase();
+      } catch (error) {
+        console.error("Semantic retrieval unavailable at startup:", error.message);
+      }
+      server.listen(PORT, () => console.log(`Travel AI Recommender running at http://localhost:${PORT}`));
+    })
     .catch((error) => {
       console.error("Could not initialize PostgreSQL:", error.message);
       process.exit(1);

@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { recommend, scoreDestination } = require("../server/recommender");
 const { destinations } = require("../server/destinations");
-const { enrichRecommendationsWithRag, queryKnowledgeBase } = require("../server/rag");
+const { buildGroundedExplanation } = require("../server/rag");
 const { extractOutputText } = require("../server/itinerary");
 
 test("returns recommendations sorted by score", () => {
@@ -38,26 +38,14 @@ test("adds explanation reasons and confidence", () => {
   assert.match(scored.confidence, /High|Medium|Exploratory/);
 });
 
-test("enriches recommendations with RAG citations", () => {
-  const preferences = {
-    interests: ["food", "culture", "beach"],
-    month: "Sep",
-    budget: 180,
-    pace: "balanced"
-  };
-  const recommendations = recommend(preferences, 2);
-  const enriched = enrichRecommendationsWithRag(recommendations, preferences);
-
-  assert.ok(enriched[0].rag.groundedAnswer.length > 50);
-  assert.ok(enriched[0].rag.citations.length > 0);
-  assert.ok(enriched[0].rag.citations[0].freshnessDate);
-});
-
-test("queries mock vector knowledge base", () => {
-  const results = queryKnowledgeBase("September food beach safety", 3);
-
-  assert.equal(results.length, 3);
-  assert.ok(results[0].similarity >= results[1].similarity);
+test("formats retrieved RAG context as cited explanation", () => {
+  const destination = { name: "Lisbon", matchedInterests: ["food"], confidence: "High", safety: 0.86 };
+  const rag = buildGroundedExplanation(destination, {}, [{
+    id: "guide-lisbon", source: "Guide", sourceUrl: "https://example.com", freshnessDate: "2026-06-01",
+    trustTier: "curated", similarity: 0.91, text: "Lisbon supports food-focused travel."
+  }]);
+  assert.match(rag.groundedAnswer, /Lisbon supports/);
+  assert.equal(rag.citations[0].similarity, 0.91);
 });
 
 test("extracts text from a Responses API REST payload", () => {
