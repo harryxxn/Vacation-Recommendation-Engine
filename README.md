@@ -1,6 +1,6 @@
 # AtlasMind
 
-AtlasMind is a working full-stack travel recommendation prototype. It includes a
+AtlasMind is a full-stack travel recommendation system. It includes a
 Node backend, browser frontend, explainable recommender, OpenAI-powered semantic
 retrieval through LangChain and Qdrant, OpenAI itinerary generation, PostgreSQL-backed
 saved trips and feedback, Prometheus metrics, MLOps monitoring, retraining simulation,
