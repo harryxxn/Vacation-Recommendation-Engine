@@ -3,7 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { destinations } = require("./destinations");
 const { DEFAULT_PREFERENCES, recommend } = require("./recommender");
-const { buildItinerary } = require("./itineraries");
+const { initializeDatabase, listTrips, saveTrip } = require("./db");
+const { generateItinerary } = require("./itinerary");
 const {
   enrichRecommendationsWithRag,
   getKnowledgeStats,
@@ -126,7 +127,7 @@ async function route(request, response) {
             "Scores blend heuristic ranking with mock RAG context. Validate with user feedback, source freshness checks, and responsible ML evaluation before production use."
         },
         rag: getKnowledgeStats(),
-        mlops: evaluateOperationalHealth(),
+        mlops: await evaluateOperationalHealth(),
         architecture: {
           frontend: "Vanilla HTML/CSS/JS",
           backendApi: "Node HTTP API",
@@ -137,18 +138,6 @@ async function route(request, response) {
       });
     } catch (error) {
       sendJson(response, 400, { error: "Invalid JSON request body" });
-    }
-    return;
-  }
-
-  if (request.method === "POST" && url.pathname === "/api/itineraries") {
-    try {
-      const body = await readJsonBody(request);
-      sendJson(response, 201, { itinerary: buildItinerary(body) });
-    } catch (error) {
-      sendJson(response, error.statusCode || 400, {
-        error: error.message || "Invalid itinerary request"
-      });
     }
     return;
   }
@@ -178,15 +167,39 @@ async function route(request, response) {
 
   if (request.method === "GET" && url.pathname === "/api/mlops/dashboard") {
     sendJson(response, 200, {
-      health: evaluateOperationalHealth(),
-      feedback: summarizeFeedback(),
+      health: await evaluateOperationalHealth(),
+      feedback: await summarizeFeedback(),
       registry: getModelRegistry()
     });
     return;
   }
 
   if (request.method === "POST" && url.pathname === "/api/mlops/retrain") {
-    sendJson(response, 200, simulateRetrainingRun());
+    sendJson(response, 200, await simulateRetrainingRun());
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/trips") {
+    sendJson(response, 200, { trips: await listTrips(url.searchParams.get("limit")) });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/itineraries") {
+    try {
+      const body = await readJsonBody(request);
+      const destination = destinations.find((item) => item.id === body.destinationId);
+      if (!destination) {
+        sendJson(response, 400, { error: "Choose a destination from the recommendation list." });
+        return;
+      }
+      const preferences = { ...DEFAULT_PREFERENCES, ...(body.preferences || {}) };
+      preferences.days = Math.min(Math.max(Number(preferences.days) || DEFAULT_PREFERENCES.days, 1), 14);
+      const generated = await generateItinerary(destination, preferences);
+      const trip = await saveTrip({ destination, preferences, ...generated });
+      sendJson(response, 201, { trip });
+    } catch (error) {
+      sendJson(response, error.statusCode || 400, { error: error.message || "Could not create itinerary" });
+    }
     return;
   }
 
@@ -194,9 +207,9 @@ async function route(request, response) {
     try {
       const body = await readJsonBody(request);
       sendJson(response, 201, {
-        event: recordFeedback(body),
-        feedback: summarizeFeedback(),
-        health: evaluateOperationalHealth()
+        event: await recordFeedback(body),
+        feedback: await summarizeFeedback(),
+        health: await evaluateOperationalHealth()
       });
     } catch (error) {
       sendJson(response, error.statusCode || 400, {
@@ -222,9 +235,12 @@ const server = http.createServer((request, response) => {
 });
 
 if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`Travel AI Recommender running at http://localhost:${PORT}`);
-  });
+  initializeDatabase()
+    .then(() => server.listen(PORT, () => console.log(`Travel AI Recommender running at http://localhost:${PORT}`)))
+    .catch((error) => {
+      console.error("Could not initialize PostgreSQL:", error.message);
+      process.exit(1);
+    });
 }
 
 module.exports = { server };

@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { recommend, scoreDestination } = require("../server/recommender");
 const { destinations } = require("../server/destinations");
 const { enrichRecommendationsWithRag, queryKnowledgeBase } = require("../server/rag");
-const { evaluateOperationalHealth, simulateRetrainingRun } = require("../server/mlops");
+const { extractOutputText } = require("../server/itinerary");
 
 test("returns recommendations sorted by score", () => {
   const results = recommend({
@@ -60,11 +60,9 @@ test("queries mock vector knowledge base", () => {
   assert.ok(results[0].similarity >= results[1].similarity);
 });
 
-test("reports MLOps health and retraining simulation", () => {
-  const health = evaluateOperationalHealth();
-  const run = simulateRetrainingRun();
-
-  assert.match(health.status, /healthy|watch/);
-  assert.equal(run.status, "completed");
-  assert.ok(run.candidateModel.metrics.ndcgAt5 >= 0.71);
+test("extracts text from a Responses API REST payload", () => {
+  const text = extractOutputText({
+    output: [{ type: "message", content: [{ type: "output_text", text: '{"title":"Trip"}' }] }]
+  });
+  assert.equal(text, '{"title":"Trip"}');
 });

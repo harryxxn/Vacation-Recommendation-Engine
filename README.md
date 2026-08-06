@@ -1,9 +1,9 @@
 # AtlasMind
 
 AtlasMind is a working full-stack travel recommendation prototype. It includes a
-dependency-free Node backend, a browser frontend, an explainable recommender,
-mock RAG, feedback capture, model registry metadata, MLOps monitoring, retraining
-simulation, and tests.
+Node backend, browser frontend, explainable recommender, mock RAG, OpenAI-powered
+itinerary generation, PostgreSQL-backed saved trips and feedback, MLOps monitoring,
+retraining simulation, and tests.
 
 ## Run locally
 
@@ -28,7 +28,10 @@ npm test
   RAG explanations, citations, model metadata, and MLOps health.
 - `POST /api/rag/query?limit=5` searches the mock vector knowledge base.
 - `POST /api/feedback` records click, save, hide, booked, thumbs-up, or
-  thumbs-down events for future model training.
+  thumbs-down events in PostgreSQL for future model training.
+- `POST /api/itineraries` generates a structured itinerary with the OpenAI
+  Responses API and saves it in PostgreSQL.
+- `GET /api/trips` returns saved generated itineraries.
 - `GET /api/model-registry` returns mock production and staging model records.
 - `GET /api/mlops/dashboard` returns monitoring, drift, feedback, and registry
   status.
@@ -98,7 +101,7 @@ Recommendation Service
   |
 Data Layer
   |-- destination catalog
-  |-- feedback event log
+  |-- PostgreSQL saved trips and feedback events
   |-- in-memory mock vector store
   |-- mock model registry
 ```

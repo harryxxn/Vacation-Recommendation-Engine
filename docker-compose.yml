@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4173:4173"
+    environment:
+      PORT: 4173
+      DATABASE_URL: postgresql://atlasmind:atlasmind@db:5432/atlasmind
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: atlasmind
+      POSTGRES_USER: atlasmind
+      POSTGRES_PASSWORD: atlasmind
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlasmind -d atlasmind"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  postgres_data:

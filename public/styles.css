@@ -443,6 +443,10 @@ button:disabled {
   background: #dfe9e3;
 }
 
+.itinerary-result {
+  margin-top: 12px;
+}
+
 .ops-panel {
   padding: 18px;
 }

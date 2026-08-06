@@ -1,8 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-
-const DATA_DIR = path.join(__dirname, "data");
-const FEEDBACK_PATH = path.join(DATA_DIR, "feedback-events.json");
+const { getFeedbackSummary, saveFeedback } = require("./db");
 
 const modelRegistry = [
   {
@@ -64,67 +60,25 @@ const baselineMetrics = {
   modelErrorRate: 0.004
 };
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
-
-function readFeedbackEvents() {
-  ensureDataDir();
-  if (!fs.existsSync(FEEDBACK_PATH)) {
-    return [];
-  }
-  try {
-    return JSON.parse(fs.readFileSync(FEEDBACK_PATH, "utf8"));
-  } catch (error) {
-    return [];
-  }
-}
-
-function writeFeedbackEvents(events) {
-  ensureDataDir();
-  fs.writeFileSync(FEEDBACK_PATH, `${JSON.stringify(events, null, 2)}\n`);
-}
-
-function recordFeedback(event = {}) {
+async function recordFeedback(event = {}) {
   const acceptedActions = ["click", "save", "hide", "booked", "thumbs_up", "thumbs_down"];
   if (!acceptedActions.includes(event.action)) {
     const error = new Error("Unsupported feedback action");
     error.statusCode = 400;
     throw error;
   }
-  const events = readFeedbackEvents();
-  const storedEvent = {
-    id: `evt_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
+  return saveFeedback({
+    tripId: event.tripId,
     destinationId: event.destinationId,
     action: event.action,
     score: Number(event.score) || null,
     modelId: event.modelId || "ranker-baseline-v1",
     sessionId: event.sessionId || "anonymous-demo-session",
-    createdAt: new Date().toISOString()
-  };
-  events.push(storedEvent);
-  writeFeedbackEvents(events.slice(-500));
-  return storedEvent;
+  });
 }
 
-function summarizeFeedback() {
-  const events = readFeedbackEvents();
-  const byAction = events.reduce((summary, event) => {
-    summary[event.action] = (summary[event.action] || 0) + 1;
-    return summary;
-  }, {});
-  const byDestination = events.reduce((summary, event) => {
-    summary[event.destinationId] = (summary[event.destinationId] || 0) + 1;
-    return summary;
-  }, {});
-  return {
-    totalEvents: events.length,
-    byAction,
-    byDestination,
-    recentEvents: events.slice(-8).reverse()
-  };
+async function summarizeFeedback() {
+  return getFeedbackSummary();
 }
 
 function getActiveModel() {
@@ -135,8 +89,8 @@ function getModelRegistry() {
   return modelRegistry;
 }
 
-function evaluateOperationalHealth() {
-  const feedback = summarizeFeedback();
+async function evaluateOperationalHealth() {
+  const feedback = await summarizeFeedback();
   const negativeSignals = (feedback.byAction.hide || 0) + (feedback.byAction.thumbs_down || 0);
   const positiveSignals = (feedback.byAction.save || 0) + (feedback.byAction.thumbs_up || 0) + (feedback.byAction.booked || 0);
   const feedbackDrift = feedback.totalEvents ? negativeSignals / feedback.totalEvents : 0;
@@ -162,8 +116,8 @@ function evaluateOperationalHealth() {
   };
 }
 
-function simulateRetrainingRun() {
-  const feedback = summarizeFeedback();
+async function simulateRetrainingRun() {
+  const feedback = await summarizeFeedback();
   const active = getActiveModel();
   const lift = Math.min(0.06, feedback.totalEvents * 0.004);
   return {
