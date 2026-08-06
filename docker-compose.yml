@@ -7,9 +7,29 @@ services:
       PORT: 4173
       DATABASE_URL: postgresql://atlasmind:atlasmind@db:5432/atlasmind
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: travel_knowledge
     depends_on:
       db:
         condition: service_healthy
+      qdrant:
+        condition: service_started
+  qdrant:
+    image: qdrant/qdrant:v1.19.0
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+  prometheus:
+    image: prom/prometheus:v3.8.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - app
   db:
     image: postgres:16-alpine
     environment:
@@ -27,3 +47,4 @@ services:
       retries: 10
 volumes:
   postgres_data:
+  qdrant_data:
