@@ -1,15 +1,26 @@
 # AtlasMind
 
 AtlasMind is a working full-stack travel recommendation prototype. It includes a
-Node backend, browser frontend, explainable recommender, mock RAG, OpenAI-powered
-itinerary generation, PostgreSQL-backed saved trips and feedback, MLOps monitoring,
-retraining simulation, and tests.
+Node backend, browser frontend, explainable recommender, OpenAI-powered semantic
+retrieval through LangChain and Qdrant, OpenAI itinerary generation, PostgreSQL-backed
+saved trips and feedback, Prometheus metrics, MLOps monitoring, retraining simulation,
+and tests.
 
 ## Run locally
 
 ```bash
 npm start
 ```
+
+With Docker, the app starts alongside PostgreSQL, Qdrant, and Prometheus:
+
+```bash
+docker compose up -d --build
+```
+
+- App: `http://localhost:4173`
+- Qdrant dashboard: `http://localhost:6333/dashboard`
+- Prometheus: `http://localhost:9090`
 
 Open `http://localhost:4173`.
 
@@ -26,7 +37,8 @@ npm test
 - `GET /api/defaults` returns default traveler preferences.
 - `POST /api/recommendations?limit=5` returns scored destination matches with
   RAG explanations, citations, model metadata, and MLOps health.
-- `POST /api/rag/query?limit=5` searches the mock vector knowledge base.
+- `POST /api/rag/query?limit=5` semantically searches the Qdrant knowledge base.
+- `GET /metrics` exposes Prometheus-compatible process and HTTP metrics.
 - `POST /api/feedback` records click, save, hide, booked, thumbs-up, or
   thumbs-down events in PostgreSQL for future model training.
 - `POST /api/itineraries` generates a structured itinerary with the OpenAI
@@ -102,6 +114,6 @@ Recommendation Service
 Data Layer
   |-- destination catalog
   |-- PostgreSQL saved trips and feedback events
-  |-- in-memory mock vector store
+  |-- Qdrant vector store (LangChain + OpenAI embeddings)
   |-- mock model registry
 ```
